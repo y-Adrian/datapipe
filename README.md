@@ -40,22 +40,73 @@ datapipe/
 
 ### 各平台交叉编译工具链
 
-#### x86_64 Linux
+#### GCC 工具链
+
+##### x86_64 Linux
 ```bash
 sudo apt install build-essential cmake binutils
 gcc --version  # >= 9.0
 ```
 
-#### ARM64 (aarch64-linux-gnu)
+##### ARM64 (aarch64-linux-gnu)
 ```bash
 sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
 aarch64-linux-gnu-gcc --version
 ```
 
-#### RISC-V 64 (riscv64-linux-gnu)
+##### RISC-V 64 (riscv64-linux-gnu)
 ```bash
 sudo apt install gcc-riscv64-linux-gnu g++-riscv64-linux-gnu binutils-riscv64-linux-gnu
 riscv64-linux-gnu-gcc --version
+```
+
+#### Clang/LLVM 工具链
+
+##### 安装 Clang
+```bash
+# Ubuntu/Debian
+sudo apt install clang lld
+
+# macOS (已有 Xcode Command Line Tools)
+# Linuxbrew
+brew install llvm
+```
+
+##### Clang 版本要求
+| 平台 | 最低版本 | 说明 |
+|------|---------|------|
+| Linux | Clang 10+ | 推荐 Clang 16+ |
+| macOS | Xcode CLang | 随 Xcode 更新 |
+| 交叉编译 | Clang 15+ | 支持 `--print-targets` |
+
+##### 使用 Clang 构建
+```bash
+# 本地构建 (x86_64)
+mkdir build && cd build
+cmake .. -DCMAKE_C_COMPILER=clang \
+         -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"
+make -j$(nproc)
+```
+
+##### Clang 交叉编译工具链文件
+项目提供了 Clang 版本的 CMake 工具链文件：
+
+| 工具链文件 | 目标平台 |
+|-----------|---------|
+| `cmake/aarch64-linux-gnu-clang.cmake` | ARM64 |
+| `cmake/riscv64-linux-gnu-clang.cmake` | RISC-V 64 |
+| `cmake/x86_64-linux-gnu-clang.cmake` | x86_64 |
+
+```bash
+# ARM64 交叉编译
+mkdir build-arm && cd build-arm
+cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/aarch64-linux-gnu-clang.cmake
+make
+
+# RISC-V 64 交叉编译
+mkdir build-riscv && cd build-riscv
+cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/riscv64-linux-gnu-clang.cmake
+make
 ```
 
 #### macOS (Apple Silicon / Intel)

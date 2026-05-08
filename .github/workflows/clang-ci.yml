@@ -1,0 +1,210 @@
+name: CI/CD Build with Clang
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  PROJECT_NAME: datapipe
+  CC: clang
+  CXX: clang++
+
+jobs:
+  # ========== x86_64 Clang 构建 ==========
+  build-x86_64-clang:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake clang lld binutils
+
+      - name: Check Clang version
+        run: |
+          clang --version
+          ld.lld --version
+
+      - name: Configure x86_64
+        run: |
+          mkdir -p build-x86_64
+          cd build-x86_64
+          cmake .. -DCMAKE_BUILD_TYPE=Release \
+                   -DCMAKE_C_COMPILER=clang \
+                   -DCMAKE_CXX_COMPILER=clang++ \
+                   -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"
+
+      - name: Build x86_64
+        run: |
+          cd build-x86_64
+          make -j$(nproc)
+
+      - name: Run tests
+        run: |
+          cd build-x86_64
+          ctest --output-on-failure
+
+      - name: Analyze symbols
+        run: |
+          cd build-x86_64
+          nm -S lib/libdatapipe.so > symbol-report-x86_64-clang.txt
+          size lib/libdatapipe.so
+
+      - name: Upload x86_64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-x86_64-clang
+          path: |
+            build-x86_64/lib/libdatapipe.so
+            build-x86_64/symbol-report-x86_64-clang.txt
+
+  # ========== ARM64 Clang 交叉编译 ==========
+  build-aarch64-clang:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Clang cross-compile toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake clang llvm binutils-aarch64-linux-gnu qemu-user-static
+
+      - name: Check Clang version
+        run: |
+          clang --version
+          clang --print-targets
+
+      - name: Configure aarch64
+        run: |
+          mkdir -p build-aarch64-clang
+          cd build-aarch64-clang
+          cmake .. \
+            -DCMAKE_TOOLCHAIN_FILE=../cmake/aarch64-linux-gnu-clang.cmake \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build aarch64
+        run: |
+          cd build-aarch64-clang
+          make -j$(nproc)
+
+      - name: Analyze symbols
+        run: |
+          cd build-aarch64-clang
+          aarch64-linux-gnu-nm -S lib/libdatapipe.so > symbol-report-aarch64-clang.txt
+          aarch64-linux-gnu-size lib/libdatapipe.so
+
+      - name: Upload aarch64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-aarch64-clang
+          path: |
+            build-aarch64-clang/lib/libdatapipe.so
+            build-aarch64-clang/symbol-report-aarch64-clang.txt
+
+  # ========== RISC-V 64 Clang 交叉编译 ==========
+  build-riscv64-clang:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Clang cross-compile toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake clang llvm binutils-riscv64-linux-gnu qemu-user
+
+      - name: Check Clang version
+        run: |
+          clang --version
+          clang --print-targets | grep riscv
+
+      - name: Configure riscv64
+        run: |
+          mkdir -p build-riscv64-clang
+          cd build-riscv64-clang
+          cmake .. \
+            -DCMAKE_TOOLCHAIN_FILE=../cmake/riscv64-linux-gnu-clang.cmake \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build riscv64
+        run: |
+          cd build-riscv64-clang
+          make -j$(nproc)
+
+      - name: Analyze symbols
+        run: |
+          cd build-riscv64-clang
+          riscv64-linux-gnu-nm -S lib/libdatapipe.so > symbol-report-riscv64-clang.txt
+          riscv64-linux-gnu-size lib/libdatapipe.so
+
+      - name: Upload riscv64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-riscv64-clang
+          path: |
+            build-riscv64-clang/lib/libdatapipe.so
+            build-riscv64-clang/symbol-report-riscv64-clang.txt
+
+  # ========== Clang Static Analysis ==========
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Clang Static Analyzer
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-tools scan-build
+
+      - name: Run scan-build
+        run: |
+          cd build || true
+          scan-build cmake .. -DCMAKE_C_COMPILER=clang
+          scan-build --status-bugs make -j$(nproc) 2>&1 || true
+
+      - name: Run clang-tidy
+        run: |
+          find . -name "*.c" -o -name "*.h" | head -20
+          # Run clang-tidy on source files
+          for f in $(find . -name "*.c" -type f); do
+            echo "Checking $f"
+            clang-tidy "$f" -- -I./include -I./include/datapipe 2>&1 || true
+          done
+
+  # ========== GCC vs Clang 对比 ==========
+  compare-gcc-clang:
+    needs: [build-x86_64-clang]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install both GCC and Clang
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake gcc clang lld
+
+      - name: Build with GCC
+        run: |
+          mkdir -p build-gcc && cd build-gcc
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=gcc
+          make -j$(nproc)
+          size lib/libdatapipe.so > size-gcc.txt
+
+      - name: Build with Clang
+        run: |
+          mkdir -p build-clang && cd build-clang
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=lld"
+          make -j$(nproc)
+          size lib/libdatapipe.so > size-clang.txt
+
+      - name: Compare sizes
+        run: |
+          echo "=== Binary Size Comparison ==="
+          echo "GCC:"
+          cat build-gcc/size-gcc.txt
+          echo ""
+          echo "Clang + lld:"
+          cat build-clang/size-clang.txt

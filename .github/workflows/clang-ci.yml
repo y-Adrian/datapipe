@@ -70,7 +70,7 @@ jobs:
       - name: Install Clang cross-compile toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake clang llvm binutils-aarch64-linux-gnu qemu-user-static
+          sudo apt-get install -y cmake clang llvm binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu qemu-user-static
 
       - name: Check Clang version
         run: |
@@ -113,7 +113,7 @@ jobs:
       - name: Install Clang cross-compile toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake clang llvm binutils-riscv64-linux-gnu qemu-user
+          sudo apt-get install -y cmake clang llvm binutils-riscv64-linux-gnu gcc-riscv64-linux-gnu qemu-user
 
       - name: Check Clang version
         run: |

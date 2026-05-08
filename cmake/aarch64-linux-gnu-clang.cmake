@@ -12,9 +12,10 @@ set(CMAKE_CXX_COMPILER clang++)
 set(CMAKE_C_COMPILER_TARGET aarch64-linux-gnu)
 set(CMAKE_CXX_COMPILER_TARGET aarch64-linux-gnu)
 
-# 链接器配置 (使用 lld 或 GNU ld)
+# 链接器配置 - 使用 clang 作为链接器
 set(CMAKE_LINKER clang)
-set(CMAKE_EXE_LINKER_FLAGS "-fuse-ld=lld")
+set(CMAKE_LINKER_TARGET aarch64-linux-gnu)
+set(CMAKE_EXE_LINKER_FLAGS_INIT "-fuse-ld=ld")
 
 # 目标环境路径
 set(CMAKE_FIND_ROOT_PATH /usr/aarch64-linux-gnu)

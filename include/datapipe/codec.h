@@ -8,6 +8,7 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "datapipe.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,7 +33,7 @@ typedef enum {
  * @param output_len 输入输出参数，传入输出缓冲区大小，传出实际输出大小
  * @return 成功返回 DATAPIPE_OK，失败返回错误码
  */
-int datapipe_encode(datapipe_codec_type_t type,
+DATAPIPE_EXPORT int datapipe_encode(datapipe_codec_type_t type,
                     const uint8_t* input, size_t input_len,
                     uint8_t* output, size_t* output_len);
 
@@ -45,7 +46,7 @@ int datapipe_encode(datapipe_codec_type_t type,
  * @param output_len 输入输出参数，传入输出缓冲区大小，传出实际输出大小
  * @return 成功返回 DATAPIPE_OK，失败返回错误码
  */
-int datapipe_decode(datapipe_codec_type_t type,
+DATAPIPE_EXPORT int datapipe_decode(datapipe_codec_type_t type,
                     const uint8_t* input, size_t input_len,
                     uint8_t* output, size_t* output_len);
 
@@ -55,7 +56,7 @@ int datapipe_decode(datapipe_codec_type_t type,
  * @param input_len 输入长度
  * @return 编码后需要的缓冲区大小
  */
-size_t datapipe_encoded_size(datapipe_codec_type_t type, size_t input_len);
+DATAPIPE_EXPORT size_t datapipe_encoded_size(datapipe_codec_type_t type, size_t input_len);
 
 /**
  * @brief 计算解码后数据大小
@@ -63,7 +64,7 @@ size_t datapipe_encoded_size(datapipe_codec_type_t type, size_t input_len);
  * @param input_len 输入长度
  * @return 解码后需要的缓冲区大小
  */
-size_t datapipe_decoded_size(datapipe_codec_type_t type, size_t input_len);
+DATAPIPE_EXPORT size_t datapipe_decoded_size(datapipe_codec_type_t type, size_t input_len);
 
 #ifdef __cplusplus
 }

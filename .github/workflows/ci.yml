@@ -19,7 +19,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake binutils nm
+          sudo apt-get install -y build-essential cmake binutils
       
       - name: Configure x86_64
         run: |

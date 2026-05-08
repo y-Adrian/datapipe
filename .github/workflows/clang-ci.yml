@@ -160,7 +160,8 @@ jobs:
 
       - name: Run scan-build
         run: |
-          cd build || true
+          mkdir -p build
+          cd build
           scan-build cmake .. -DCMAKE_C_COMPILER=clang
           scan-build --status-bugs make -j$(nproc) 2>&1 || true
 

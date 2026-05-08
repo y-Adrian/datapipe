@@ -108,7 +108,7 @@ jobs:
           cd build-riscv64
           cmake .. \
             -DCMAKE_TOOLCHAIN_FILE=../cmake/riscv64-linux-gnu.cmake \
-            -CMAKE_BUILD_TYPE=Release
+            -DCMAKE_BUILD_TYPE=Release
       
       - name: Build riscv64
         run: |

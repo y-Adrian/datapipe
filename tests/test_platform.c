@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "platform.h"
 
 #define TEST_PASS(msg) printf("[PASS] %s\n", msg)

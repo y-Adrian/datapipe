@@ -34,16 +34,10 @@ if(ENABLE_SYMBOL_HIDDEN)
     add_compile_options(-fvisibility=hidden)
 endif()
 
-# 添加头文件目录
+# 设置头文件目录
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-# 添加子目录
-add_subdirectory(src/core)
-add_subdirectory(src/buffer)
-add_subdirectory(src/codec)
-add_subdirectory(src/platform)
-
-# 创建主库
+# 创建主库（直接列出源文件，不使用子目录静态库）
 set(DATAPIPE_SOURCES
     src/core/datapipe.c
     src/core/core.c

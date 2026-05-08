@@ -27,6 +27,7 @@ message(STATUS "CMake System Processor: ${CMAKE_SYSTEM_PROCESSOR}")
 # 编译选项
 option(BUILD_SHARED_LIBS "Build shared libraries" ON)
 option(BUILD_TESTS "Build test programs" ON)
+option(BUILD_DOCS "Build documentation with Doxygen" OFF)
 option(ENABLE_SYMBOL_HIDDEN "Hide internal symbols by default" ON)
 
 # 设置编译标志
@@ -79,6 +80,40 @@ install(DIRECTORY include/datapipe
 if(BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+# 生成 pkg-config 文件
+configure_file(
+    "${CMAKE_SOURCE_DIR}/datapipe.pc.in"
+    "${CMAKE_BINARY_DIR}/datapipe.pc"
+    @ONLY
+)
+install(FILES "${CMAKE_BINARY_DIR}/datapipe.pc"
+        DESTINATION lib/pkgconfig)
+
+# Doxygen 文档构建
+if(BUILD_DOCS)
+    find_package(Doxygen REQUIRED)
+    set(DOXYGEN_INPUT_DIR "${CMAKE_SOURCE_DIR}")
+    set(DOXYGEN_OUTPUT_DIR "${CMAKE_BINARY_DIR}/docs")
+    set(DOXYGEN_IN ${CMAKE_SOURCE_DIR}/docs/Doxyfile)
+    set(DOXYGEN_OUT ${CMAKE_BINARY_DIR}/docs/Doxyfile)
+
+    # 创建输出目录
+    file(MAKE_DIRECTORY ${DOXYGEN_OUTPUT_DIR})
+
+    # 配置 Doxyfile
+    configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
+
+    add_custom_target-docs ALL
+        COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+        VERBATIM)
+
+    install(DIRECTORY ${CMAKE_BINARY_DIR}/docs/html
+            DESTINATION share/doc/datapipe
+            COMPONENT documentation)
 endif()
 
 # 打印构建信息

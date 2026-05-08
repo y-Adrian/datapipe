@@ -1,0 +1,13 @@
+# datapipe pkg-config file
+
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+libdir=@LIB_INSTALL_DIR@
+includedir=@CMAKE_INSTALL_PREFIX}/include
+
+Name: datapipe
+Description: Lightweight C data pipeline middleware
+Version: @PROJECT_VERSION@
+Requires:
+Cflags: -I${includedir}
+Libs: -L${libdir} -ldatapipe

@@ -28,6 +28,50 @@ datapipe/
 └── docs/             # 文档
 ```
 
+## 环境要求
+
+### 基础构建工具
+
+| 工具 | 最低版本 | 说明 |
+|------|---------|------|
+| GCC/Clang | C11 | C 编译器 |
+| CMake | 3.16+ | 构建系统 |
+| Make | 3.81+ | 构建工具 |
+
+### 各平台交叉编译工具链
+
+#### x86_64 Linux
+```bash
+sudo apt install build-essential cmake binutils
+gcc --version  # >= 9.0
+```
+
+#### ARM64 (aarch64-linux-gnu)
+```bash
+sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu
+aarch64-linux-gnu-gcc --version
+```
+
+#### RISC-V 64 (riscv64-linux-gnu)
+```bash
+sudo apt install gcc-riscv64-linux-gnu g++-riscv64-linux-gnu binutils-riscv64-linux-gnu
+riscv64-linux-gnu-gcc --version
+```
+
+#### macOS (Apple Silicon / Intel)
+```bash
+# 使用 Xcode Command Line Tools
+xcode-select --install
+# 或使用 Homebrew 安装 CMake
+brew install cmake
+```
+
+#### Windows (MinGW-w64)
+```bash
+# 使用 MSYS2
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake
+```
+
 ## 快速开始
 
 ### 本地构建
@@ -40,12 +84,34 @@ cd datapipe
 # 创建构建目录
 mkdir build && cd build
 
-# 配置和编译
-cmake ..
+# 配置和编译（Debug 版本）
+cmake -DCMAKE_BUILD_TYPE=Debug ..
+make -j$(nproc)
+
+# 或编译 Release 版本（推荐用于生产环境）
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j$(nproc)
 
 # 运行测试
 ctest --output-on-failure
+```
+
+### 构建选项
+
+```bash
+# 启用/禁用共享库（默认启用）
+cmake -DBUILD_SHARED_LIBS=ON ..
+cmake -DBUILD_SHARED_LIBS=OFF ..  # 编译为静态库
+
+# 启用/禁用测试（默认启用）
+cmake -DBUILD_TESTS=ON ..
+
+# 启用 Doxygen 文档生成（需要安装 doxygen）
+cmake -DBUILD_DOCS=ON ..
+make docs
+
+# 符号可见性控制（默认启用，隐藏内部符号）
+cmake -DENABLE_SYMBOL_HIDDEN=ON ..
 ```
 
 ### 交叉编译
@@ -65,6 +131,28 @@ make
 mkdir build-riscv && cd build-riscv
 cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/riscv64-linux-gnu.cmake ..
 make
+```
+
+## 安装
+
+### 安装到系统目录
+
+```bash
+cd build
+sudo make install
+
+# 刷新动态链接库缓存（Linux）
+sudo ldconfig
+
+# 刷新动态链接库缓存（macOS）
+sudo update_dyld_shared_cache
+```
+
+### 安装到自定义目录
+
+```bash
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local ..
+make install
 ```
 
 ## 使用示例
@@ -135,6 +223,29 @@ docker run --rm datapipe:aarch64 /workspace/run_tests.sh
 2. 运行所有测试用例
 3. 分析二进制符号大小变更
 4. 生成构建产物和测试报告
+
+## 代码规范
+
+项目使用以下工具保持代码风格一致：
+
+```bash
+# 格式化 C 代码（需要 clang-format）
+clang-format -i -style=file src/*.c include/*.h
+
+# 生成 API 文档（需要 doxygen）
+doxygen docs/Doxyfile
+```
+
+## 未来规划
+
+欢迎贡献以下方向的改进：
+
+- [ ] 添加更多编解码格式（URL 编码、JSON 序列化、LZ4/ZSTD 压缩）
+- [ ] 添加性能基准测试
+- [ ] 添加流式处理 API
+- [ ] 添加更多平台支持（Windows ARM64）
+- [ ] 添加 Python/Lua 绑定
+- [ ] 添加 benchmark 和 profiling 工具
 
 ## 贡献
 

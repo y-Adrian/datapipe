@@ -1,0 +1,41 @@
+# Doxyfile for DataPipe API Documentation
+
+PROJECT_NAME           = "DataPipe"
+PROJECT_NUMBER         = "1.0.0"
+PROJECT_BRIEF          = "轻量级数据管道中间件"
+OUTPUT_DIRECTORY       = docs/doxygen
+CREATE_SUBDIRS         = YES
+OPTIMIZE_OUTPUT_FOR_C  = YES
+BUILTIN_STL_SUPPORT    = YES
+MARKDOWN_SUPPORT       = YES
+TOC_EXPAND             = YES
+
+INPUT                  = include \
+                         src \
+                         README.md
+
+FILE_PATTERNS          = *.h \
+                         *.c \
+                         *.md
+RECURSIVE              = YES
+
+EXCLUDE_PATTERNS       = */tests/*
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_EXTENDED_STYLE    = YES
+HTML_COLORSTYLE_HUE    = 200
+HTML_COLORSTYLE_SAT    = 100
+HTML_INDEX_NUM_ENTRIES = 50
+
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+GENERATE_XML           = YES
+XML_OUTPUT             = xml
+
+QUIET                  = YES
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_NO_PARAMDOC        = YES
+
+EXTENSION_MAPPING      = c=C

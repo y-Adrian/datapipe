@@ -26,9 +26,9 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
-# Clang 编译选项 - RISC-V 64gc (G继承 + C扩展)
-set(CMAKE_C_FLAGS_INIT "-target riscv64-unknown-linux-gnu -march=rv64gc")
-set(CMAKE_CXX_FLAGS_INIT "-target riscv64-unknown-linux-gnu -march=rv64gc")
+# Clang 编译选项 - RISC-V 64gc (G继承 + C扩展) + 指定交叉链接器
+set(CMAKE_C_FLAGS_INIT "-target riscv64-unknown-linux-gnu -march=rv64gc -B/usr/bin/riscv64-linux-gnu-")
+set(CMAKE_CXX_FLAGS_INIT "-target riscv64-unknown-linux-gnu -march=rv64gc -B/usr/bin/riscv64-linux-gnu-")
 
 message(STATUS "Configuring for riscv64 Linux with Clang")
 message(STATUS "  C Compiler: ${CMAKE_C_COMPILER}")

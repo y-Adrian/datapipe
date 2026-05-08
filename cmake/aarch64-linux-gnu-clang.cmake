@@ -26,9 +26,9 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 
-# Clang 编译选项
-set(CMAKE_C_FLAGS_INIT "-target aarch64-linux-gnu -march=armv8-a")
-set(CMAKE_CXX_FLAGS_INIT "-target aarch64-linux-gnu -march=armv8-a")
+# Clang 编译选项 - 指定交叉链接器
+set(CMAKE_C_FLAGS_INIT "-target aarch64-linux-gnu -march=armv8-a -B/usr/bin/aarch64-linux-gnu-")
+set(CMAKE_CXX_FLAGS_INIT "-target aarch64-linux-gnu -march=armv8-a -B/usr/bin/aarch64-linux-gnu-")
 
 # 启用薄链接 (Thin LTO) 可选
 # set(CMAKE_C_FLAGS_INIT "${CMAKE_C_FLAGS_INIT} -flto=thin")

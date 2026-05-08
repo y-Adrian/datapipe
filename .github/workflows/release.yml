@@ -1,0 +1,159 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  # ========== 创建 Release Draft ==========
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          release_name: DataPipe v${{ github.event.inputs.version }}
+          draft: true
+          prerelease: false
+
+  # ========== Linux x86_64 ==========
+  linux-x86_64:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake build-essential
+
+      - name: Build
+        run: |
+          mkdir -p build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF
+          make -j$(nproc)
+          make DESTDIR=install install
+
+      - name: Package
+        run: |
+          tar -czvf datapipe-${{ github.event.inputs.version }}-linux-x86_64.tar.gz \
+            -C build/install usr
+
+      - name: Upload
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: datapipe-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
+          asset_name: datapipe-${{ github.event.inputs.version }}-linux-x86_64.tar.gz
+          asset_content_type: application/gzip
+
+  # ========== Linux ARM64 ==========
+  linux-aarch64:
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cross-compile toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake clang llvm binutils-aarch64-linux-gnu gcc-aarch64-linux-gnu
+
+      - name: Build
+        run: |
+          mkdir -p build && cd build
+          cmake .. \
+            -DCMAKE_TOOLCHAIN_FILE=../cmake/aarch64-linux-gnu-clang.cmake \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTS=OFF
+          make -j$(nproc)
+          make DESTDIR=install install
+
+      - name: Package
+        run: |
+          tar -czvf datapipe-${{ github.event.inputs.version }}-linux-aarch64.tar.gz \
+            -C build/install usr
+
+      - name: Upload
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: datapipe-${{ github.event.inputs.version }}-linux-aarch64.tar.gz
+          asset_name: datapipe-${{ github.event.inputs.version }}-linux-aarch64.tar.gz
+          asset_content_type: application/gzip
+
+  # ========== macOS Universal ==========
+  macos:
+    needs: create-release
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          mkdir -p build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          make -j$(nproc)
+          make DESTDIR=install install
+
+      - name: Package
+        run: |
+          tar -czvf datapipe-${{ github.event.inputs.version }}-macos-universal.tar.gz \
+            -C build/install usr
+
+      - name: Upload
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: datapipe-${{ github.event.inputs.version }}-macos-universal.tar.gz
+          asset_name: datapipe-${{ github.event.inputs.version }}-macos-universal.tar.gz
+          asset_content_type: application/gzip
+
+  # ========== Windows x64 ==========
+  windows:
+    needs: create-release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build with MSVC
+        run: |
+          mkdir build
+          cd build
+          cmake .. -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=OFF
+          cmake --build . --config Release
+          cmake --install . --prefix install
+
+      - name: Package
+        run: |
+          tar -czvf datapipe-${{ github.event.inputs.version }}-windows-x64.tar.gz -C build/install .
+
+      - name: Upload
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: datapipe-${{ github.event.inputs.version }}-windows-x64.tar.gz
+          asset_name: datapipe-${{ github.event.inputs.version }}-windows-x64.tar.gz
+          asset_content_type: application/gzip

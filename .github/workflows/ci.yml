@@ -1,0 +1,242 @@
+name: CI/CD Build and Binary Analysis
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+env:
+  PROJECT_NAME: datapipe
+
+jobs:
+  # ========== x86_64 构建 ==========
+  build-x86_64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake binutils nm
+      
+      - name: Configure x86_64
+        run: |
+          mkdir -p build-x86_64
+          cd build-x86_64
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=x86_64
+      
+      - name: Build x86_64
+        run: |
+          cd build-x86_64
+          make -j$(nproc)
+      
+      - name: Run tests
+        run: |
+          cd build-x86_64
+          ctest --output-on-failure
+      
+      - name: Analyze symbols
+        run: |
+          cd build-x86_64
+          nm -S lib/libdatapipe.so > symbol-report-x86_64.txt
+          size lib/libdatapipe.so
+          objdump -h lib/libdatapipe.so | head -20
+      
+      - name: Upload x86_64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-x86_64
+          path: |
+            build-x86_64/lib/libdatapipe.so
+            build-x86_64/symbol-report-x86_64.txt
+
+  # ========== ARM64 交叉编译 ==========
+  build-aarch64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install cross-compile toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake gcc-aarch64-linux-gnu g++-aarch64-linux-gnu binutils-aarch64-linux-gnu qemu-user-static
+      
+      - name: Configure aarch64
+        run: |
+          mkdir -p build-aarch64
+          cd build-aarch64
+          cmake .. \
+            -DCMAKE_TOOLCHAIN_FILE=../cmake/aarch64-linux-gnu.cmake \
+            -DCMAKE_BUILD_TYPE=Release
+      
+      - name: Build aarch64
+        run: |
+          cd build-aarch64
+          make -j$(nproc)
+      
+      - name: Analyze symbols
+        run: |
+          cd build-aarch64
+          aarch64-linux-gnu-nm -S lib/libdatapipe.so > symbol-report-aarch64.txt
+          aarch64-linux-gnu-size lib/libdatapipe.so
+          aarch64-linux-gnu-objdump -h lib/libdatapipe.so | head -20
+      
+      - name: Upload aarch64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-aarch64
+          path: |
+            build-aarch64/lib/libdatapipe.so
+            build-aarch64/symbol-report-aarch64.txt
+
+  # ========== RISC-V 64 交叉编译 ==========
+  build-riscv64:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install cross-compile toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake gcc-riscv64-linux-gnu g++-riscv64-linux-gnu binutils-riscv64-linux-gnu qemu-user
+      
+      - name: Configure riscv64
+        run: |
+          mkdir -p build-riscv64
+          cd build-riscv64
+          cmake .. \
+            -DCMAKE_TOOLCHAIN_FILE=../cmake/riscv64-linux-gnu.cmake \
+            -CMAKE_BUILD_TYPE=Release
+      
+      - name: Build riscv64
+        run: |
+          cd build-riscv64
+          make -j$(nproc)
+      
+      - name: Analyze symbols
+        run: |
+          cd build-riscv64
+          riscv64-linux-gnu-nm -S lib/libdatapipe.so > symbol-report-riscv64.txt
+          riscv64-linux-gnu-size lib/libdatapipe.so
+      
+      - name: Upload riscv64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-riscv64
+          path: |
+            build-riscv64/lib/libdatapipe.so
+            build-riscv64/symbol-report-riscv64.txt
+
+  # ========== 符号大小变更分析 ==========
+  analyze-symbols:
+    needs: [build-x86_64, build-aarch64, build-riscv64]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史用于比较
+      
+      - name: Download current artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts/pr
+      
+      - name: Download baseline artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: baseline-symbols
+          path: artifacts/baseline
+          continue-on-error: true
+      
+      - name: Compare symbol sizes
+        run: |
+          echo "=== Symbol Size Analysis ==="
+          echo ""
+          
+          for arch in x86_64 aarch64 riscv64; do
+            echo "--- $arch ---"
+            if [ -f "artifacts/pr/build-$arch/symbol-report-$arch.txt" ]; then
+              echo "PR Build Symbols:"
+              cat "artifacts/pr/build-$arch/symbol-report-$arch.txt"
+            fi
+            if [ -f "artifacts/baseline/build-$arch/symbol-report-$arch.txt" ]; then
+              echo ""
+              echo "Baseline Symbols:"
+              cat "artifacts/baseline/build-$arch/symbol-report-$arch.txt"
+            fi
+            echo ""
+          done
+      
+      - name: Generate size comparison report
+        run: |
+          echo "# Binary Size Change Report" > size-report.md
+          echo "" >> size-report.md
+          echo "PR: ${{ github.event.pull_request.title }}" >> size-report.md
+          echo "Base SHA: ${{ github.event.pull_request.base.sha }}" >> size-report.md
+          echo "Head SHA: ${{ github.event.pull_request.head.sha }}" >> size-report.md
+          echo "" >> size-report.md
+          
+          for arch in x86_64 aarch64 riscv64; do
+            echo "## $arch" >> size-report.md
+            echo '```' >> size-report.md
+            if [ -f "artifacts/pr/build-$arch/symbol-report-$arch.txt" ]; then
+              cat "artifacts/pr/build-$arch/symbol-report-$arch.txt" >> size-report.md
+            fi
+            echo '```' >> size-report.md
+            echo "" >> size-report.md
+          done
+          
+          cat size-report.md
+      
+      - name: Upload size report
+        uses: actions/upload-artifact@v4
+        with:
+          name: size-report
+          path: size-report.md
+
+  # ========== 保存 Baseline ==========
+  save-baseline:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake gcc-aarch64-linux-gnu gcc-riscv64-linux-gnu binutils
+      
+      - name: Build all platforms
+        run: |
+          # x86_64
+          mkdir -p artifacts/baseline/build-x86_64
+          mkdir -p build-x86_64 && cd build-x86_64
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          make
+          nm -S lib/libdatapipe.so > ../artifacts/baseline/build-x86_64/symbol-report-x86_64.txt
+          cd ..
+          
+          # aarch64
+          mkdir -p artifacts/baseline/build-aarch64
+          mkdir -p build-aarch64 && cd build-aarch64
+          cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/aarch64-linux-gnu.cmake -DCMAKE_BUILD_TYPE=Release
+          make
+          aarch64-linux-gnu-nm -S lib/libdatapipe.so > ../artifacts/baseline/build-aarch64/symbol-report-aarch64.txt
+          cd ..
+          
+          # riscv64
+          mkdir -p artifacts/baseline/build-riscv64
+          mkdir -p build-riscv64 && cd build-riscv64
+          cmake .. -DCMAKE_TOOLCHAIN_FILE=../cmake/riscv64-linux-gnu.cmake -DCMAKE_BUILD_TYPE=Release
+          make
+          riscv64-linux-gnu-nm -S lib/libdatapipe.so > ../artifacts/baseline/build-riscv64/symbol-report-riscv64.txt
+      
+      - name: Upload baseline artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: baseline-symbols
+          path: artifacts/baseline
+          retention-days: 30

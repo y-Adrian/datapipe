@@ -1,0 +1,25 @@
+# CMake 构建文件
+build/
+cmake-build-*/
+
+# 编译产物
+*.so
+*.a
+*.dylib
+*.dll
+*.exe
+
+# IDE 文件
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 测试产物
+*.out
+test_output/
+
+# Docker 产物
+docker-logs/

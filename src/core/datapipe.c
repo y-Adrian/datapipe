@@ -5,6 +5,7 @@
 
 #include "datapipe.h"
 #include "platform.h"
+#include <stdio.h>
 
 const char* datapipe_version(void) {
     static char version[32];

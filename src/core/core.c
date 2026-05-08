@@ -4,6 +4,7 @@
  */
 
 #include "core.h"
+#include "datapipe.h"
 #include <stdlib.h>
 #include <string.h>
 

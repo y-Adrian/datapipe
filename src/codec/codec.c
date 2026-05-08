@@ -4,6 +4,7 @@
  */
 
 #include "codec.h"
+#include "datapipe.h"
 #include <string.h>
 #include <stdlib.h>
 

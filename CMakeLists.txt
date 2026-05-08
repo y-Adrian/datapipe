@@ -34,8 +34,9 @@ if(ENABLE_SYMBOL_HIDDEN)
     add_compile_options(-fvisibility=hidden)
 endif()
 
-# 设置头文件目录
+# 设置头文件目录 - 添加 include/datapipe 以支持 #include "xxx.h" 形式
 include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_SOURCE_DIR}/include/datapipe)
 
 # 创建主库（直接列出源文件，不使用子目录静态库）
 set(DATAPIPE_SOURCES

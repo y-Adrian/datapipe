@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "codec.h"
+#include "datapipe.h"
 
 #define TEST_PASS(msg) printf("[PASS] %s\n", msg)
 #define TEST_FAIL(msg) printf("[FAIL] %s\n", msg)
